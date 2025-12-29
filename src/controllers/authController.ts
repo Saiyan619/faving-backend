@@ -1,18 +1,50 @@
 import { Request, Response } from 'express';
 import * as authService from '../services/authService';
 
+// Helper function to determine if connection is secure (handles proxies)
+const isSecureConnection = (req: Request): boolean => {
+    // Check explicit environment variable first
+    if (process.env.SECURE_COOKIE === 'true') return true;
+    if (process.env.SECURE_COOKIE === 'false') return false;
+    
+    // Check if behind a proxy (common in production)
+    const forwardedProto = req.headers['x-forwarded-proto'];
+    if (forwardedProto === 'https') return true;
+    
+    // Check direct connection
+    return req.secure;
+};
+
+// Helper function to get cookie options
+const getCookieOptions = (req: Request): any => {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isSecure = isSecureConnection(req);
+    
+    const cookieOptions: any = {
+        httpOnly: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    };
+
+    if (isProduction) {
+        // Production: use 'none' for cross-origin, requires secure
+        // If secure is true, use 'none', otherwise use 'lax'
+        cookieOptions.secure = isSecure;
+        cookieOptions.sameSite = isSecure ? 'none' : 'lax';
+    } else {
+        // Development: use 'lax' and allow http
+        cookieOptions.secure = false;
+        cookieOptions.sameSite = 'lax';
+    }
+
+    return cookieOptions;
+};
+
 export const register = async (req: Request, res: Response) => {
     try {
         const { name, email, password } = req.body;
         const user = await authService.registerUser(name, email, password);
 
-        // Set cookie
-        res.cookie('jwt', user.token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV !== 'development',
-            sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none',
-            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-        });
+        res.cookie('jwt', user.token, getCookieOptions(req));
 
         res.status(201).json(user);
     } catch (error) {
@@ -25,13 +57,7 @@ export const login = async (req: Request, res: Response) => {
         const { email, password } = req.body;
         const user = await authService.loginUser(email, password);
 
-        // Set cookie
-        res.cookie('jwt', user.token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV !== 'development',
-            sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none',
-            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-        });
+        res.cookie('jwt', user.token, getCookieOptions(req));
 
         res.json(user);
     } catch (error) {
@@ -40,12 +66,11 @@ export const login = async (req: Request, res: Response) => {
 };
 
 export const logout = (req: Request, res: Response) => {
-    res.cookie('jwt', '', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development',
-        sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none',
-        expires: new Date(0),
-    });
+    const cookieOptions = getCookieOptions(req);
+    cookieOptions.expires = new Date(0);
+    delete cookieOptions.maxAge;
+    
+    res.cookie('jwt', '', cookieOptions);
     res.status(200).json({ message: 'Logged out successfully' });
 };
 
