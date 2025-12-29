@@ -6,11 +6,11 @@ const isSecureConnection = (req: Request): boolean => {
     // Check explicit environment variable first
     if (process.env.SECURE_COOKIE === 'true') return true;
     if (process.env.SECURE_COOKIE === 'false') return false;
-    
+
     // Check if behind a proxy (common in production)
     const forwardedProto = req.headers['x-forwarded-proto'];
     if (forwardedProto === 'https') return true;
-    
+
     // Check direct connection
     return req.secure;
 };
@@ -19,7 +19,7 @@ const isSecureConnection = (req: Request): boolean => {
 const getCookieOptions = (req: Request): any => {
     const isProduction = process.env.NODE_ENV === 'production';
     const isSecure = isSecureConnection(req);
-    
+
     const cookieOptions: any = {
         httpOnly: true,
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
@@ -58,18 +58,6 @@ export const login = async (req: Request, res: Response) => {
         const user = await authService.loginUser(email, password);
 
         const cookieOptions = getCookieOptions(req);
-        
-        // Log cookie configuration for debugging
-        console.log('[Login] Setting cookie with options:', {
-            httpOnly: cookieOptions.httpOnly,
-            secure: cookieOptions.secure,
-            sameSite: cookieOptions.sameSite,
-            maxAge: cookieOptions.maxAge,
-            isProduction: process.env.NODE_ENV === 'production',
-            isSecure: isSecureConnection(req),
-            forwardedProto: req.headers['x-forwarded-proto'],
-            origin: req.headers.origin
-        });
 
         res.cookie('jwt', user.token, cookieOptions);
 
@@ -83,7 +71,7 @@ export const logout = (req: Request, res: Response) => {
     const cookieOptions = getCookieOptions(req);
     cookieOptions.expires = new Date(0);
     delete cookieOptions.maxAge;
-    
+
     res.cookie('jwt', '', cookieOptions);
     res.status(200).json({ message: 'Logged out successfully' });
 };
