@@ -1,0 +1,156 @@
+PERSONAL FINANCE MANAGEMENT API REFERENCE
+===========================================
+
+Base URL: http://localhost:5000
+
+Authentication:
+- The API uses JSON Web Tokens (JWT) stored in HTTP-Only cookies.
+- For all protected routes, the browser will automatically send the `jwt` cookie.
+- Ensure your frontend is running on an allowed origin and requests are made with `withCredentials: true`.
+
+Endpoints:
+
+AUTH
+----
+POST /auth/register
+- Body: { "name": "John Doe", "email": "john@example.com", "password": "password123" }
+- Response: { "_id": "...", "name": "...", "email": "...", "token": "..." }
+- Note: Token is also set in a 'jwt' HTTP-Only cookie.
+
+POST /auth/login
+- Body: { "email": "john@example.com", "password": "password123" }
+- Response: { "_id": "...", "name": "...", "email": "...", "token": "..." }
+- Note: Token is also set in a 'jwt' HTTP-Only cookie.
+
+POST /auth/logout
+- Body: {}
+- Response: { "message": "Logged out successfully" }
+- Note: Clears the 'jwt' cookie.
+
+GET /auth/me
+- Headers: Cookie (automatically sent)
+- Response: { "_id": "...", "name": "...", "email": "..." }
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+HEADERS FOR PROTECTED ROUTES
+- No manual Authorization header required.
+- The `jwt` cookie is automatically handled by the browser.
+-------------------------------------------------------------------------------
+
+ACCOUNTS
+========
+3. Create Account
+   - Method: POST
+   - URL: /accounts
+   - Body (JSON):
+     {
+       "name": "Main Bank Account",
+       "type": "Bank",      // e.g., Bank, Cash, Mobile Money
+       "currency": "USD",
+       "balance": 100000    // NOTE: Amount in Cents (100000 = 1000.00)
+     }
+
+4. Get All Accounts
+   - Method: GET
+   - URL: /accounts
+
+5. Get Account by ID
+   - Method: GET
+   - URL: /accounts/:id
+   - Example: /accounts/64f1a2b3c4d5e6f7g8h9i0j1
+
+6. Update Account
+   - Method: PUT
+   - URL: /accounts/:id
+   - Body (JSON):
+     {
+       "name": "Updated Bank Account Name"
+     }
+
+7. Delete Account
+   - Method: DELETE
+   - URL: /accounts/:id
+
+TRANSACTIONS
+============
+8. Get Transactions
+   - Method: GET
+   - URL: /transactions
+   - Query Params (Optional):
+     ?page=1
+     ?limit=10
+     ?accountId=...
+     ?type=income (or expense, transfer_in, transfer_out)
+
+9. Add Income
+   - Method: POST
+   - URL: /transactions/income
+   - Body (JSON):
+     {
+       "accountId": "<ACCOUNT_ID>",
+       "amount": 50000,     // 500.00
+       "category": "Salary",
+       "note": "January Paycheck",
+       "date": "2023-01-01" // Optional, defaults to now
+     }
+
+10. Add Expense
+    - Method: POST
+    - URL: /transactions/expense
+    - Body (JSON):
+      {
+        "accountId": "<ACCOUNT_ID>",
+        "amount": 1500,     // 15.00
+        "category": "Food",
+        "note": "Lunch",
+        "date": "2023-01-02"
+      }
+
+11. Transfer Money
+    - Method: POST
+    - URL: /transactions/transfer
+    - Body (JSON):
+      {
+        "fromAccountId": "<SOURCE_ACCOUNT_ID>",
+        "toAccountId": "<DESTINATION_ACCOUNT_ID>",
+        "amount": 20000,    // 200.00
+        "note": "Savings transfer"
+      }
+
+12. Reverse Transaction
+    - Method: POST
+    - URL: /transactions/:id/reverse
+    - Note: This keeps the transaction record but marks it as 'reversed' and reverts the balance change.
+
+ANALYTICS (STATS)
+=================
+13. Get Overview
+    - Method: GET
+    - URL: /stats/overview
+    - Response: Total Income, Total Expense, Net Balance.
+
+14. Get Expense Category Statistics
+    - Method: GET
+    - URL: /stats/categories/expense
+    - Response: Breakdown of expense transactions by category.
+
+15. Get Income Category Statistics
+    - Method: GET
+    - URL: /stats/categories/income
+    - Response: Breakdown of income transactions by category.
+
+16. Get Monthly Statistics
+    - Method: GET
+    - URL: /stats/monthly
+    - Response: Monthly income and expense totals.
+
+17. Get Daily Statistics
+    - Method: GET
+    - URL: /stats/daily
+    - Response: Daily income and expense totals.
+
+18. Get Yearly Statistics
+    - Method: GET
+    - URL: /stats/yearly
+    - Response: Yearly income and expense totals.
