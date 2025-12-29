@@ -57,7 +57,21 @@ export const login = async (req: Request, res: Response) => {
         const { email, password } = req.body;
         const user = await authService.loginUser(email, password);
 
-        res.cookie('jwt', user.token, getCookieOptions(req));
+        const cookieOptions = getCookieOptions(req);
+        
+        // Log cookie configuration for debugging
+        console.log('[Login] Setting cookie with options:', {
+            httpOnly: cookieOptions.httpOnly,
+            secure: cookieOptions.secure,
+            sameSite: cookieOptions.sameSite,
+            maxAge: cookieOptions.maxAge,
+            isProduction: process.env.NODE_ENV === 'production',
+            isSecure: isSecureConnection(req),
+            forwardedProto: req.headers['x-forwarded-proto'],
+            origin: req.headers.origin
+        });
+
+        res.cookie('jwt', user.token, cookieOptions);
 
         res.json(user);
     } catch (error) {
