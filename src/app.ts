@@ -1,4 +1,4 @@
-import express, { Application } from 'express'; // Restart trigger
+import express, { Application } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
